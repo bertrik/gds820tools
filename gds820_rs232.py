@@ -19,7 +19,7 @@ class scope:
         return s
 
     # get device identity
-    def get_idn(self):
+    def get_identity(self):
         self.serial.write("*IDN?\n")
         return self.read_reply().strip()
 
@@ -30,9 +30,9 @@ class scope:
         reply = self.read_reply().strip()
         # handle units
         if reply.endswith('mV'):
-            return 1e-3 * float(ret[:-2])
+            return 1e-3 * float(reply[:-2])
         elif reply.endswith('V'):
-            return float(ret[:-1])
+            return float(reply[:-1])
         else:
             raise RuntimeError("Encountered unknown vertical scale value: " + repr(vscale))
 
@@ -55,18 +55,18 @@ class scope:
         assert header[0] == '#'
         assert header[1] in '456'
         len_len =  int(header[1])
-        data_len = int(this.serial.read(len_len)) - 8
+        data_len = int(self.serial.read(len_len)) - 8
         assert data_len%2 == 0
         sample_num = data_len/2     # number of samples: divide by 2 bytes/sample
 
         # read data info -- 4 byte sample rate, 1 byte channel ID, 3 bytes reserved
-        sample_rate = struct.unpack('>f', this.serial.read(4))[0]
-        channel_indicator = struct.unpack('B', this.serial.read(1))[0]
+        sample_rate = struct.unpack('>f', self.serial.read(4))[0]
+        channel_indicator = struct.unpack('B', self.serial.read(1))[0]
         assert channel_indicator == channel
-        _ = this.serial.read(3)             # reserved
+        _ = self.serial.read(3)             # reserved
 
         # read data itself
-        data = np.array(struct.unpack('>'+'h'*sample_num, this.serial.read(data_len)), dtype='f')
+        data = np.array(struct.unpack('>'+'h'*sample_num, self.serial.read(data_len)), dtype='f')
         data *= vres    # scale to volts
 
         return sample_rate, data
